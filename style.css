@@ -1,127 +1,183 @@
-/* ===============================
-   PROJECT LINKS (NEW)
-   Makes "Live Demo" / "GitHub" links inside project cards
-   look consistent with the rest of the design.
-================================= */
+// ===============================
+// Remove "no-js" class as soon as JS runs
+// (enables observer-based reveal; fallback CSS handles JS-off)
+// ===============================
+document.documentElement.classList.remove("no-js");
 
-.project-card .project-links {
-    display: flex;
-    gap: 12px;
-    margin-top: 20px;
-    flex-wrap: wrap;
-}
 
-.project-card .project-links a {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 600;
-    background: #1e3a8a;
-    color: #dbeafe;
-    transition: .3s;
-}
+// ===============================
+// ACTIVE NAVIGATION + HEADER SHADOW
+// Combined scroll handler with rAF throttle for performance
+// ===============================
 
-.project-card .project-links a:hover {
-    background: #2563eb;
-    color: #ffffff;
-    transform: translateY(-2px);
-}
+const sections = document.querySelectorAll("section");
+const navLinks = document.querySelectorAll("nav a");
+const header = document.querySelector("header");
 
-/* ===============================
-   TRAINING / INTERNSHIPS CARDS
-   Left-align icons + content for the internships section
-   (still centered for achievements, but not for training)
-================================= */
+const prefersReducedMotion = window.matchMedia(
+    "(prefers-reduced-motion: reduce)"
+).matches;
 
-#certifications .certificate-card {
-    text-align: left;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
+let ticking = false;
 
-#certifications .certificate-card i {
-    align-self: flex-start;
-    margin-bottom: 10px;
-}
+function onScroll() {
 
-#certifications .certificate-card p {
-    color: #cbd5e1;
-    margin: 0;
-}
+    if (!ticking) {
 
-#certifications .certificate-card span {
-    color: #94a3b8;
-    font-size: 13.5px;
-    margin-top: 4px;
-}
+        window.requestAnimationFrame(() => {
 
-/* ===============================
-   SCROLL REVEAL FIX
-   Prevent flicker between CSS fadeUp animation and JS observer
-================================= */
+            const scrollY = window.scrollY;
 
-/* Let JS observer control these; disable the CSS auto-animation */
-.card,
-.skill-box,
-.project-card,
-.achievement-card,
-.certificate-card,
-.contact-box {
-    animation: none;
-}
+            // --- Active nav link ---
+            let current = "";
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop - 120;
+                if (scrollY >= sectionTop) {
+                    current = section.getAttribute("id");
+                }
+            });
 
-/* Fallback: if JS is disabled, show content after 0.4s */
-@keyframes fadeUpFallback {
-    from { opacity: 0; transform: translateY(40px); }
-    to   { opacity: 1; transform: translateY(0); }
-}
+            navLinks.forEach(link => {
+                link.classList.remove("active");
+                if (link.getAttribute("href") === "#" + current) {
+                    link.classList.add("active");
+                }
+            });
 
-.no-js .card,
-.no-js .skill-box,
-.no-js .project-card,
-.no-js .achievement-card,
-.no-js .certificate-card,
-.no-js .contact-box {
-    animation: fadeUpFallback .8s ease both;
-}
+            // --- Header shadow ---
+            if (header) {
+                if (scrollY > 50) {
+                    header.style.boxShadow = "0 8px 25px rgba(0,0,0,.35)";
+                    header.style.background = "rgba(7,15,35,.95)";
+                } else {
+                    header.style.boxShadow = "none";
+                    header.style.background = "rgba(7,15,35,.75)";
+                }
+            }
 
-/* ===============================
-   SKILLS - LLM & GenAI highlight
-   Slight accent for the new "LLM & Generative AI" box
-================================= */
+            ticking = false;
 
-.skill-box:has(i.fa-brain) {
-    border-color: #7c3aed;
-}
+        });
 
-.skill-box:has(i.fa-brain):hover {
-    border-color: #a78bfa;
-    box-shadow: 0 20px 40px rgba(124, 58, 237, 0.18);
-}
-
-/* ===============================
-   HERO STATS - allow "+" and ".5" suffix
-================================= */
-
-.hero-stats h3 {
-    min-width: 40px;   /* Prevents layout shift while counting */
-    display: inline-block;
-}
-
-/* ===============================
-   NAVBAR - fix overflow on tablet
-================================= */
-
-@media (max-width: 1100px) {
-    nav {
-        gap: 18px;
-        font-size: 14px;
+        ticking = true;
     }
-    nav a {
-        font-size: 14px;
-    }
+
 }
+
+window.addEventListener("scroll", onScroll, { passive: true });
+onScroll();
+
+
+// ===============================
+// SCROLL REVEAL
+// ===============================
+
+if (!prefersReducedMotion) {
+
+    const observer = new IntersectionObserver(entries => {
+
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = "1";
+                entry.target.style.transform = "translateY(0)";
+                observer.unobserve(entry.target);
+            }
+        });
+
+    }, { threshold: 0.15 });
+
+    const cards = document.querySelectorAll(
+        ".card, .skill-box, .project-card, .achievement-card, .certificate-card, .contact-box"
+    );
+
+    cards.forEach(card => {
+        card.style.opacity = "0";
+        card.style.transform = "translateY(40px)";
+        card.style.transition = "all .7s ease";
+        observer.observe(card);
+    });
+
+}
+
+
+// ===============================
+// HERO STATS COUNTER
+// Handles decimals (9.5) and suffixes (4+, 350+, 5+)
+// ===============================
+
+const counters = document.querySelectorAll(".hero-stats h3");
+
+counters.forEach(counter => {
+
+    const rawText = counter.innerText.trim();
+
+    if (prefersReducedMotion) {
+        counter.innerText = rawText;
+        return;
+    }
+
+    const match = rawText.match(/^(\d+(?:\.\d+)?)(.*)$/);
+    if (!match) return;
+
+    const targetNumber = parseFloat(match[1]);
+    const suffix = match[2] || "";
+    const isDecimal = match[1].includes(".");
+
+    const duration = 1200;
+    const startTime = performance.now();
+
+    const animate = (currentTime) => {
+
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const current = targetNumber * eased;
+
+        if (isDecimal) {
+            counter.innerText = current.toFixed(1) + suffix;
+        } else {
+            counter.innerText = Math.floor(current) + suffix;
+        }
+
+        if (progress < 1) {
+            requestAnimationFrame(animate);
+        } else {
+            counter.innerText = rawText;
+        }
+
+    };
+
+    requestAnimationFrame(animate);
+
+});
+
+
+// ===============================
+// SMOOTH SCROLL
+// ===============================
+
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+
+    anchor.addEventListener("click", function (e) {
+
+        e.preventDefault();
+
+        const target = document.querySelector(this.getAttribute("href"));
+
+        if (target) {
+            const offset = 80;
+            const targetTop =
+                target.getBoundingClientRect().top + window.scrollY - offset;
+
+            window.scrollTo({
+                top: targetTop,
+                behavior: prefersReducedMotion ? "auto" : "smooth"
+            });
+
+            navLinks.forEach(link => link.classList.remove("active"));
+            this.classList.add("active");
+        }
+
+    });
+
+});
