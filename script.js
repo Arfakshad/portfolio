@@ -41,15 +41,11 @@ const header = document.querySelector("header");
 window.addEventListener("scroll", () => {
 
     if (window.scrollY > 50) {
-
         header.style.boxShadow = "0 8px 25px rgba(0,0,0,.35)";
         header.style.background = "rgba(7,15,35,.95)";
-
     } else {
-
         header.style.boxShadow = "none";
         header.style.background = "rgba(7,15,35,.75)";
-
     }
 
 });
@@ -63,10 +59,8 @@ const observer = new IntersectionObserver(entries => {
     entries.forEach(entry => {
 
         if (entry.isIntersecting) {
-
             entry.target.style.opacity = "1";
             entry.target.style.transform = "translateY(0)";
-
         }
 
     });
@@ -90,40 +84,54 @@ cards.forEach(card => {
 });
 
 // ===============================
-// HERO STATS COUNTER
+// HERO STATS COUNTER (FIXED)
 // ===============================
+// Fix: now handles decimals (9.5) and suffixes (4+, 350+, 5+)
+// correctly instead of truncating to integers.
 
 const counters = document.querySelectorAll(".hero-stats h3");
 
 counters.forEach(counter => {
 
-    const text = counter.innerText;
+    const rawText = counter.innerText.trim();
 
-    const number = parseInt(text);
+    // Extract the numeric part and the suffix (like "+")
+    const match = rawText.match(/^(\d+(?:\.\d+)?)(.*)$/);
+    if (!match) return;
 
-    if (isNaN(number)) return;
+    const targetNumber = parseFloat(match[1]);
+    const suffix = match[2] || "";
+    const isDecimal = match[1].includes(".");
 
-    let count = 0;
+    let start = 0;
+    const duration = 1200; // ms
+    const startTime = performance.now();
 
-    const update = () => {
+    const animate = (currentTime) => {
 
-        count++;
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
 
-        counter.innerText = count;
+        // Ease-out curve for a nicer finish
+        const eased = 1 - Math.pow(1 - progress, 3);
 
-        if (count < number) {
+        const current = targetNumber * eased;
 
-            requestAnimationFrame(update);
-
+        if (isDecimal) {
+            counter.innerText = current.toFixed(1) + suffix;
         } else {
+            counter.innerText = Math.floor(current) + suffix;
+        }
 
-            counter.innerText = text;
-
+        if (progress < 1) {
+            requestAnimationFrame(animate);
+        } else {
+            counter.innerText = rawText; // ensure exact final value
         }
 
     };
 
-    update();
+    requestAnimationFrame(animate);
 
 });
 
@@ -140,15 +148,10 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         const target = document.querySelector(this.getAttribute("href"));
 
         if (target) {
-
             window.scrollTo({
-
                 top: target.offsetTop - 80,
-
                 behavior: "smooth"
-
             });
-
         }
 
     });
