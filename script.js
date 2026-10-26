@@ -1,13 +1,18 @@
 // ===============================
+// Remove "no-js" class as soon as JS runs
+// ===============================
+document.documentElement.classList.remove("no-js");
+
+
+// ===============================
 // ACTIVE NAVIGATION + HEADER SHADOW
-// (Combined scroll handler with rAF throttle for performance)
+// Combined scroll handler with rAF throttle
 // ===============================
 
 const sections = document.querySelectorAll("section");
 const navLinks = document.querySelectorAll("nav a");
 const header = document.querySelector("header");
 
-// Respect user's "reduce motion" preference
 const prefersReducedMotion = window.matchMedia(
     "(prefers-reduced-motion: reduce)"
 ).matches;
@@ -17,11 +22,12 @@ let ticking = false;
 function onScroll() {
 
     if (!ticking) {
+
         window.requestAnimationFrame(() => {
 
             const scrollY = window.scrollY;
 
-            // --- Active nav link ---
+            // Active nav link
             let current = "";
             sections.forEach(section => {
                 const sectionTop = section.offsetTop - 120;
@@ -37,7 +43,7 @@ function onScroll() {
                 }
             });
 
-            // --- Header shadow ---
+            // Header shadow
             if (header) {
                 if (scrollY > 50) {
                     header.style.boxShadow = "0 8px 25px rgba(0,0,0,.35)";
@@ -58,7 +64,7 @@ function onScroll() {
 }
 
 window.addEventListener("scroll", onScroll, { passive: true });
-onScroll(); // run once on load
+onScroll();
 
 
 // ===============================
@@ -70,18 +76,14 @@ if (!prefersReducedMotion) {
     const observer = new IntersectionObserver(entries => {
 
         entries.forEach(entry => {
-
             if (entry.isIntersecting) {
                 entry.target.style.opacity = "1";
                 entry.target.style.transform = "translateY(0)";
-                observer.unobserve(entry.target); // stop observing after reveal
+                observer.unobserve(entry.target);
             }
-
         });
 
-    }, {
-        threshold: 0.15
-    });
+    }, { threshold: 0.15 });
 
     const cards = document.querySelectorAll(
         ".card, .skill-box, .project-card, .achievement-card, .certificate-card, .contact-box"
@@ -108,7 +110,6 @@ counters.forEach(counter => {
 
     const rawText = counter.innerText.trim();
 
-    // If user prefers reduced motion, just set the final value
     if (prefersReducedMotion) {
         counter.innerText = rawText;
         return;
@@ -164,14 +165,14 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
 
         if (target) {
             const offset = 80;
-            const targetTop = target.getBoundingClientRect().top + window.scrollY - offset;
+            const targetTop =
+                target.getBoundingClientRect().top + window.scrollY - offset;
 
             window.scrollTo({
                 top: targetTop,
                 behavior: prefersReducedMotion ? "auto" : "smooth"
             });
 
-            // Immediately update active nav link for instant feedback
             navLinks.forEach(link => link.classList.remove("active"));
             this.classList.add("active");
         }
